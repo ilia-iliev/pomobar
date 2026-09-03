@@ -1,7 +1,10 @@
 # pomobar
 
-A minimal Pomodoro timer for i3status and swaybar. It stores state in
-`$XDG_RUNTIME_DIR` and has no daemon.
+A minimal Pomodoro timer for i3status and swaybar. It has no daemon.
+
+Completed rounds are shown before a running timer (`2 55m`), reset at midnight,
+and persist across restarts. State is stored in
+`$XDG_STATE_HOME/pomobar/state` (normally `~/.local/state/pomobar/state`).
 
 ## Install
 

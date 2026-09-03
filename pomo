@@ -6,8 +6,8 @@ RUNNING_FORMAT='%sm'
 PAUSED_FORMAT='|| %sm'
 DONE_GLYPH='🍅🍅🍅'
 
-: "${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR must be set}"
-STATE_FILE=${POMO_STATE_FILE:-"$XDG_RUNTIME_DIR/pomodoro.state"}
+STATE_HOME=${XDG_STATE_HOME:-"${HOME:?HOME must be set}/.local/state"}
+STATE_FILE=${POMO_STATE_FILE:-"$STATE_HOME/pomobar/state"}
 
 usage() {
     printf '%s\n' "usage: pomo {start [minutes]|toggle|stop|render|wrap}" >&2
@@ -25,6 +25,8 @@ load_state() {
     status=idle
     end_time=0
     remaining=0
+    completed=0
+    state_date=
 
     [ -r "$STATE_FILE" ] || return
     # The state file is written solely by this script and deliberately uses
@@ -33,12 +35,15 @@ load_state() {
         status=idle
         end_time=0
         remaining=0
+        completed=0
+        state_date=
         return
     }
 
-    case $status in idle|running|paused) ;; *) status=idle ;; esac
+    case $status in idle|running|paused|done) ;; *) status=idle ;; esac
     is_number "$end_time" || end_time=0
     is_number "$remaining" || remaining=0
+    is_number "$completed" || completed=0
 
     case $status in
         running) [ "$end_time" -gt 0 ] || status=idle ;;
@@ -48,13 +53,46 @@ load_state() {
 
 write_state() {
     umask 077
+    state_dir=${STATE_FILE%/*}
+    [ "$state_dir" = "$STATE_FILE" ] || mkdir -p "$state_dir" || exit 1
     temp_file="$STATE_FILE.$$.tmp"
     {
         printf 'status=%s\n' "$status"
         printf 'end_time=%s\n' "$end_time"
         printf 'remaining=%s\n' "$remaining"
+        printf 'completed=%s\n' "$completed"
+        printf 'state_date=%s\n' "$state_date"
     } >"$temp_file" || exit 1
     mv "$temp_file" "$STATE_FILE"
+}
+
+refresh_state() {
+    load_state
+    now=$(date +%s)
+    today=$(date +%F)
+    changed=0
+
+    if [ "$state_date" != "$today" ]; then
+        completed=0
+        state_date=$today
+        [ "$status" = done ] && status=idle
+        changed=1
+    fi
+
+    if [ "$status" = running ] && [ "$now" -ge "$end_time" ]; then
+        day_start=$(date -d "$today" +%s)
+        if [ "$end_time" -ge "$day_start" ]; then
+            completed=$((completed + 1))
+            status=done
+        else
+            status=idle
+        fi
+        end_time=0
+        remaining=0
+        changed=1
+    fi
+
+    [ "$changed" -eq 0 ] || write_state
 }
 
 refresh_bar() {
@@ -62,22 +100,21 @@ refresh_bar() {
 }
 
 render() {
-    load_state
+    refresh_state
     case $status in
         running)
-            now=$(date +%s)
-            if [ "$now" -ge "$end_time" ]; then
-                printf '%s' "$DONE_GLYPH"
-            else
-                seconds_left=$((end_time - now))
-                minutes_left=$(((seconds_left + 59) / 60))
-                # The format strings are intentionally user-editable settings.
-                printf "$RUNNING_FORMAT" "$minutes_left"
-            fi
+            [ "$completed" -eq 0 ] || printf '%s ' "$completed"
+            seconds_left=$((end_time - now))
+            minutes_left=$(((seconds_left + 59) / 60))
+            # The format strings are intentionally user-editable settings.
+            printf "$RUNNING_FORMAT" "$minutes_left"
             ;;
         paused)
             minutes_left=$(((remaining + 59) / 60))
             printf "$PAUSED_FORMAT" "$minutes_left"
+            ;;
+        done)
+            printf '%s %s' "$completed" "$DONE_GLYPH"
             ;;
     esac
 }
@@ -86,6 +123,7 @@ start() {
     minutes=${1:-$DEFAULT_MINUTES}
     is_number "$minutes" && [ "$minutes" -gt 0 ] || usage
 
+    refresh_state
     now=$(date +%s)
     status=running
     end_time=$((now + minutes * 60))
@@ -95,7 +133,7 @@ start() {
 }
 
 toggle() {
-    load_state
+    refresh_state
     now=$(date +%s)
 
     case $status in
@@ -125,7 +163,11 @@ toggle() {
 }
 
 stop() {
-    [ -e "$STATE_FILE" ] && command rm -f "$STATE_FILE"
+    refresh_state
+    status=idle
+    end_time=0
+    remaining=0
+    write_state
     refresh_bar
 }
 
