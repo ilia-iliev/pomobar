@@ -10,7 +10,7 @@ STATE_HOME=${XDG_STATE_HOME:-"${HOME:?HOME must be set}/.local/state"}
 STATE_FILE=${POMO_STATE_FILE:-"$STATE_HOME/pomobar/state"}
 
 usage() {
-    printf '%s\n' "usage: pomo {start [minutes]|toggle|stop|render|wrap}" >&2
+    printf '%s\n' "usage: pomo {toggle|stop|render|wrap}" >&2
     exit 2
 }
 
@@ -119,24 +119,16 @@ render() {
     esac
 }
 
-start() {
-    minutes=${1:-$DEFAULT_MINUTES}
-    is_number "$minutes" && [ "$minutes" -gt 0 ] || usage
-
-    refresh_state
-    now=$(date +%s)
-    status=running
-    end_time=$((now + minutes * 60))
-    remaining=0
-    write_state
-    refresh_bar
-}
-
 toggle() {
     refresh_state
     now=$(date +%s)
 
     case $status in
+        idle|done)
+            status=running
+            end_time=$((now + DEFAULT_MINUTES * 60))
+            remaining=0
+            ;;
         running)
             remaining=$((end_time - now))
             if [ "$remaining" -le 0 ]; then
@@ -211,10 +203,6 @@ wrap() {
 }
 
 case ${1:-} in
-    start)
-        [ "$#" -le 2 ] || usage
-        start "$2"
-        ;;
     toggle)
         [ "$#" -eq 1 ] || usage
         toggle

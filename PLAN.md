@@ -24,20 +24,17 @@ running, only the target `end_time` exists; remaining time is derived as
 `end_time - now` whenever something asks. "Done" is not a stored state — it
 is detected at render time (`now >= end_time` → show the tomato).
 
-Missing file means `idle`. Any `start` recreates it. Writes go through a
-temp-file-and-`mv` so the bar never reads a half-written file.
+Missing file means `idle`. `toggle` recreates it when starting a timer. Writes
+go through a temp-file-and-`mv` so the bar never reads a half-written file.
 
 ### 2. `pomo` script
 
 One POSIX shell script (`#!/bin/sh`, Linux-only, no bashisms needed) with
 subcommands — the only thing that touches the state file:
 
-- `pomo start [minutes]` — writes `status=running`,
-  `end_time = now + duration` (default 25 minutes). Acts as restart from any
-  state, so start/restart is a single keybinding with no conditional logic.
-- `pomo toggle` — running → paused: compute and store `remaining`;
-  paused → running: `end_time = now + remaining`. A toggle beats separate
-  pause/resume keys.
+- `pomo toggle` — idle/done → running with the default duration; running →
+  paused with `remaining` stored; paused → running with `end_time = now +
+  remaining`. One key handles start, pause, and resume.
 - `pomo stop` — remove the state file (back to idle, bar segment disappears).
 - `pomo render` — read state, print the bar text, exit. Does not mutate
   anything.
@@ -81,8 +78,7 @@ builtins if we allow bash, or accepted as one fork per interval.
 Plain `bindsym` entries in the i3/sway config:
 
 ```
-bindsym $mod+p       exec pomo start
-bindsym $mod+Shift+p exec pomo toggle
+bindsym $mod+p       exec pomo toggle
 ```
 
 No IPC protocol or socket — the state file is the IPC.
@@ -90,11 +86,11 @@ No IPC protocol or socket — the state file is the IPC.
 ## State machine
 
 ```
-idle ──start──▶ running ──(end_time reached, render-time)──▶ done(🍅)
-                │   ▲                                          │
-             toggle toggle                 start (= restart) ──┘
-                ▼   │                      works from any state
-               paused
+idle/done ──toggle──▶ running ──(end_time reached, render-time)──▶ done(🍅)
+                      │   ▲
+                   toggle toggle
+                      ▼   │
+                     paused
 ```
 
 ## Display format
@@ -115,9 +111,9 @@ script — no config file for a personal tool.
 - **Suspend/resume**: wall-clock `end_time` means the timer counts through
   suspend; waking past the interval shows 🍅. Arguably correct for pomodoro;
   a systemd sleep hook calling `pomo toggle` is a later enhancement if not.
-- **Corrupt/missing state**: render treats it as idle; `start` overwrites.
+- **Corrupt/missing state**: render treats it as idle; `toggle` starts anew.
 - **Bar restart**: state survives in the file; the timer reappears intact.
-- **Completion notification** (optional, later): on `start`, spawn a detached
+- **Completion notification** (optional, later): on `toggle`, spawn a detached
   `sleep <duration> && notify-send`, which re-checks the state file before
   firing so a restart or pause invalidates the stale notification.
 
