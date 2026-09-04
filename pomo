@@ -3,7 +3,7 @@
 
 DEFAULT_MINUTES=60
 RUNNING_FORMAT='%sm'
-PAUSED_FORMAT='|| %sm'
+PAUSED_FORMAT='⏸️ %sm'
 DONE_GLYPH='🍅🍅🍅'
 
 STATE_HOME=${XDG_STATE_HOME:-"${HOME:?HOME must be set}/.local/state"}

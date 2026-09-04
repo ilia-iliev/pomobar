@@ -1,6 +1,6 @@
 # pomobar
 
-A minimal Pomodoro timer for i3status and swaybar.
+A minimal Pomodoro timer for i3status/swaybar.
 
 Completed rounds are shown before a running timer (`2 55m`), reset at midnight, and persist across restarts. State is stored in
 `$XDG_STATE_HOME/pomobar/state` (normally `~/.local/state/pomobar/state`).
@@ -36,7 +36,7 @@ Pipe i3status through the wrapper:
 status_command i3status | pomo wrap
 ```
 
-Add keybindings:
+Add keybinding:
 
 ```
 bindsym $mod+p       exec pomo toggle
