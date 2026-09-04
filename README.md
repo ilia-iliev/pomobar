@@ -41,5 +41,3 @@ Add keybindings:
 ```
 bindsym $mod+p       exec pomo toggle
 ```
-
-Commands: `pomo toggle` (starts when inactive; otherwise pauses/resumes), `pomo stop`, and `pomo render`.
