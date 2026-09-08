@@ -23,6 +23,7 @@ is_number() {
 
 load_state() {
     status=idle
+    start_time=0
     end_time=0
     remaining=0
     completed=0
@@ -33,6 +34,7 @@ load_state() {
     # shell assignments, keeping it readable and trivial to load.
     . "$STATE_FILE" 2>/dev/null || {
         status=idle
+        start_time=0
         end_time=0
         remaining=0
         completed=0
@@ -41,6 +43,7 @@ load_state() {
     }
 
     case $status in idle|running|paused|done) ;; *) status=idle ;; esac
+    is_number "$start_time" || start_time=0
     is_number "$end_time" || end_time=0
     is_number "$remaining" || remaining=0
     is_number "$completed" || completed=0
@@ -58,6 +61,7 @@ write_state() {
     temp_file="$STATE_FILE.$$.tmp"
     {
         printf 'status=%s\n' "$status"
+        printf 'start_time=%s\n' "$start_time"
         printf 'end_time=%s\n' "$end_time"
         printf 'remaining=%s\n' "$remaining"
         printf 'completed=%s\n' "$completed"
@@ -80,13 +84,16 @@ refresh_state() {
     fi
 
     if [ "$status" = running ] && [ "$now" -ge "$end_time" ]; then
+        # Credit the day the interval was started on: a timer that ran across
+        # midnight (or through a suspend) is not today's work.
         day_start=$(date -d "$today" +%s)
-        if [ "$end_time" -ge "$day_start" ]; then
+        if [ "$start_time" -ge "$day_start" ]; then
             completed=$((completed + 1))
             status=done
         else
             status=idle
         fi
+        start_time=0
         end_time=0
         remaining=0
         changed=1
@@ -126,6 +133,7 @@ toggle() {
     case $status in
         idle|done)
             status=running
+            start_time=$now
             end_time=$((now + DEFAULT_MINUTES * 60))
             remaining=0
             ;;
@@ -134,6 +142,7 @@ toggle() {
             if [ "$remaining" -le 0 ]; then
                 # A completed timer has no remaining duration to resume.
                 status=idle
+                start_time=0
                 end_time=0
                 remaining=0
             else
@@ -143,6 +152,8 @@ toggle() {
             ;;
         paused)
             status=running
+            # Resuming starts a fresh interval, so the credit follows it.
+            start_time=$now
             end_time=$((now + remaining))
             remaining=0
             ;;
@@ -157,6 +168,7 @@ toggle() {
 stop() {
     refresh_state
     status=idle
+    start_time=0
     end_time=0
     remaining=0
     write_state
