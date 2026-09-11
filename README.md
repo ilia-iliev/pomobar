@@ -2,7 +2,8 @@
 
 A minimal Pomodoro timer for i3status/swaybar.
 
-Completed rounds are shown before a running timer (`2 55m`), reset at midnight, and persist across restarts. State is stored in
+Completed rounds are shown before a running timer (`2 55m`), reset at midnight, and persist across restarts. `pomo reset` clears
+the count and the current timer to start the day over. State is stored in
 `$XDG_STATE_HOME/pomobar/state` (normally `~/.local/state/pomobar/state`).
 
 ## Install

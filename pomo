@@ -10,7 +10,7 @@ STATE_HOME=${XDG_STATE_HOME:-"${HOME:?HOME must be set}/.local/state"}
 STATE_FILE=${POMO_STATE_FILE:-"$STATE_HOME/pomobar/state"}
 
 usage() {
-    printf '%s\n' "usage: pomo {toggle|stop|render|wrap}" >&2
+    printf '%s\n' "usage: pomo {toggle|stop|reset|render|wrap}" >&2
     exit 2
 }
 
@@ -165,12 +165,24 @@ toggle() {
     refresh_bar
 }
 
-stop() {
-    refresh_state
+clear_timer() {
     status=idle
     start_time=0
     end_time=0
     remaining=0
+}
+
+stop() {
+    refresh_state
+    clear_timer
+    write_state
+    refresh_bar
+}
+
+reset() {
+    refresh_state
+    clear_timer
+    completed=0
     write_state
     refresh_bar
 }
@@ -222,6 +234,10 @@ case ${1:-} in
     stop)
         [ "$#" -eq 1 ] || usage
         stop
+        ;;
+    reset)
+        [ "$#" -eq 1 ] || usage
+        reset
         ;;
     render)
         [ "$#" -eq 1 ] || usage
