@@ -2,8 +2,8 @@
 
 A minimal Pomodoro timer for i3status/swaybar.
 
-Completed rounds are shown before a running timer (`2 55m`), reset at midnight, and persist across restarts. `pomo reset` clears
-the count and the current timer to start the day over. State is stored in
+The round counter starts at 7 and counts down with each completed timer (`7 60m`, then `6 60m`). At 0 it turns green in i3bar and counts up for extra rounds. The count resets at midnight and persists across restarts. `pomo reset` clears
+the count and the current timer to start the day over. Set `TARGET_ROUNDS` in the script to change the goal. State is stored in
 `$XDG_STATE_HOME/pomobar/state` (normally `~/.local/state/pomobar/state`).
 
 ## Install
@@ -12,7 +12,8 @@ Clone and symlink the script:
 
 ```sh
 git clone https://github.com/ilia-iliev/pomobar.git ~/src/pomobar
-ln -s ~/src/pomobar/pomo ~/.local/bin/pomoOr install the script directly:
+ln -s ~/src/pomobar/pomo ~/.local/bin/pomo
+```
 
 Or install directly:
 

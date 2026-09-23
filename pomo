@@ -2,6 +2,8 @@
 # A small, state-file-backed pomodoro timer for i3status/swaybar.
 
 DEFAULT_MINUTES=60
+TARGET_ROUNDS=7
+TARGET_COLOR='#00ff00'
 RUNNING_FORMAT='%sm'
 PAUSED_FORMAT='⏸️ %sm'
 DONE_GLYPH='🍅🍅🍅'
@@ -106,24 +108,35 @@ refresh_bar() {
     pkill -USR1 i3status >/dev/null 2>&1 || :
 }
 
-render() {
+render_bar() {
     refresh_state
+    text=
+    color=
+    rounds_left=$((TARGET_ROUNDS - completed))
+    if [ "$rounds_left" -le 0 ]; then
+        rounds_left=$((-rounds_left))
+        color=$TARGET_COLOR
+    fi
     case $status in
         running)
-            [ "$completed" -eq 0 ] || printf '%s ' "$completed"
             seconds_left=$((end_time - now))
             minutes_left=$(((seconds_left + 59) / 60))
             # The format strings are intentionally user-editable settings.
-            printf "$RUNNING_FORMAT" "$minutes_left"
+            text="$rounds_left $(printf "$RUNNING_FORMAT" "$minutes_left")"
             ;;
         paused)
             minutes_left=$(((remaining + 59) / 60))
-            printf "$PAUSED_FORMAT" "$minutes_left"
+            text="$rounds_left $(printf "$PAUSED_FORMAT" "$minutes_left")"
             ;;
         done)
-            printf '%s %s' "$completed" "$DONE_GLYPH"
+            text="$rounds_left $DONE_GLYPH"
             ;;
     esac
+}
+
+render() {
+    render_bar
+    printf '%s' "$text"
 }
 
 toggle() {
@@ -198,22 +211,24 @@ wrap() {
             continue
         fi
 
-        text=$(render)
+        render_bar
         [ -n "$text" ] || {
             printf '%s\n' "$line"
             continue
         }
 
+        color_field=
+        [ -z "$color" ] || color_field=$(printf ',"color":"%s"' "$color")
         if [ "$json" -eq 1 ]; then
             case $line in
                 ',['*)
                     rest=${line#,[}
-                    printf ',[{"full_text":"%s"},%s\n' "$text" "$rest"
+                    printf ',[{"full_text":"%s"%s},%s\n' "$text" "$color_field" "$rest"
                     ;;
                 '['*)
                     rest=${line#[}
                     if [ -n "$rest" ]; then
-                        printf '[{"full_text":"%s"},%s\n' "$text" "$rest"
+                        printf '[{"full_text":"%s"%s},%s\n' "$text" "$color_field" "$rest"
                     else
                         printf '%s\n' "$line"
                     fi
