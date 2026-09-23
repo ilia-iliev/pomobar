@@ -3,7 +3,7 @@
 
 DEFAULT_MINUTES=60
 TARGET_ROUNDS=7
-TARGET_COLOR='#00ff00'
+TARGET_GLYPH='✅'
 RUNNING_FORMAT='%sm'
 PAUSED_FORMAT='⏸️ %sm'
 DONE_GLYPH='🍅🍅🍅'
@@ -111,25 +111,25 @@ refresh_bar() {
 render_bar() {
     refresh_state
     text=
-    color=
     rounds_left=$((TARGET_ROUNDS - completed))
+    round_separator=' '
     if [ "$rounds_left" -le 0 ]; then
         rounds_left=$((-rounds_left))
-        color=$TARGET_COLOR
+        round_separator=$TARGET_GLYPH
     fi
     case $status in
         running)
             seconds_left=$((end_time - now))
             minutes_left=$(((seconds_left + 59) / 60))
             # The format strings are intentionally user-editable settings.
-            text="$rounds_left $(printf "$RUNNING_FORMAT" "$minutes_left")"
+            text="$rounds_left$round_separator$(printf "$RUNNING_FORMAT" "$minutes_left")"
             ;;
         paused)
             minutes_left=$(((remaining + 59) / 60))
-            text="$rounds_left $(printf "$PAUSED_FORMAT" "$minutes_left")"
+            text="$rounds_left$round_separator$(printf "$PAUSED_FORMAT" "$minutes_left")"
             ;;
         done)
-            text="$rounds_left $DONE_GLYPH"
+            text="$rounds_left$round_separator$DONE_GLYPH"
             ;;
     esac
 }
@@ -217,18 +217,16 @@ wrap() {
             continue
         }
 
-        color_field=
-        [ -z "$color" ] || color_field=$(printf ',"color":"%s"' "$color")
         if [ "$json" -eq 1 ]; then
             case $line in
                 ',['*)
                     rest=${line#,[}
-                    printf ',[{"full_text":"%s"%s},%s\n' "$text" "$color_field" "$rest"
+                    printf ',[{"full_text":"%s"},%s\n' "$text" "$rest"
                     ;;
                 '['*)
                     rest=${line#[}
                     if [ -n "$rest" ]; then
-                        printf '[{"full_text":"%s"%s},%s\n' "$text" "$color_field" "$rest"
+                        printf '[{"full_text":"%s"},%s\n' "$text" "$rest"
                     else
                         printf '%s\n' "$line"
                     fi

@@ -26,38 +26,40 @@ check '7 2m'
 state running 6
 check '1 2m'
 state running 7
-check '0 2m'
+check '0✅2m'
 state running 9
-check '2 2m'
+check '2✅2m'
 state paused 6
 check '1 ⏸️ 2m'
+state paused 7
+check '0✅⏸️ 2m'
 state done 7
-check '0 🍅🍅🍅'
+check '0✅🍅🍅🍅'
 
 state running 7
 actual=$(printf '%s\n' '{"version":1}' '[' '[{"full_text":"clock"}]' | "$repo/pomo" wrap)
 case $actual in
-    *'"full_text":"0 2m","color":"#00ff00"'*) ;;
-    *) printf 'missing green countdown: %s\n' "$actual" >&2; exit 1 ;;
+    *'"full_text":"0✅2m"'*) ;;
+    *) printf 'missing tick at target: %s\n' "$actual" >&2; exit 1 ;;
 esac
 
 state running 9
 actual=$(printf '%s\n' '{"version":1}' '[' ',[{"full_text":"clock"}]' | "$repo/pomo" wrap)
 case $actual in
-    *',[{"full_text":"2 2m","color":"#00ff00"},{"full_text":"clock"}]'*) ;;
-    *) printf 'missing green extra rounds: %s\n' "$actual" >&2; exit 1 ;;
+    *',[{"full_text":"2✅2m"},{"full_text":"clock"}]'*) ;;
+    *) printf 'missing tick for extra rounds: %s\n' "$actual" >&2; exit 1 ;;
 esac
 
 state running 6
 actual=$(printf '%s\n' '{"version":1}' '[' '[{"full_text":"clock"}]' | "$repo/pomo" wrap)
 case $actual in
-    *'"color":"#00ff00"'*) printf 'premature green: %s\n' "$actual" >&2; exit 1 ;;
+    *'✅'*|*'"color"'*) printf 'premature tick or color: %s\n' "$actual" >&2; exit 1 ;;
 esac
 
 state running 6
 # Expiration credits a round and reaches the target.
 printf 'end_time=%s\n' "$((now - 1))" >>"$POMO_STATE_FILE"
-check '0 🍅🍅🍅'
+check '0✅🍅🍅🍅'
 grep -q '^completed=7$' "$POMO_STATE_FILE"
 
 "$repo/pomo" reset
