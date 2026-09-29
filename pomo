@@ -116,6 +116,10 @@ render_bar() {
     if [ "$rounds_left" -le 0 ]; then
         rounds_left=$((-rounds_left))
         round_separator=$TARGET_GLYPH
+    else
+        case $status in
+            running|paused) rounds_left=$((rounds_left - 1)) ;;
+        esac
     fi
     case $status in
         running)

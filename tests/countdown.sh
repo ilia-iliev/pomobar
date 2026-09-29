@@ -22,15 +22,19 @@ check() {
 }
 
 state running 0
-check '7 2m'
+check '6 2m'
+state running 4
+check '2 2m'
 state running 6
-check '1 2m'
+check '0 2m'
 state running 7
 check '0✅2m'
 state running 9
 check '2✅2m'
+state paused 4
+check '2 ⏸️ 2m'
 state paused 6
-check '1 ⏸️ 2m'
+check '0 ⏸️ 2m'
 state paused 7
 check '0✅⏸️ 2m'
 state done 7
@@ -53,6 +57,10 @@ esac
 state running 6
 actual=$(printf '%s\n' '{"version":1}' '[' '[{"full_text":"clock"}]' | "$repo/pomo" wrap)
 case $actual in
+    *'"full_text":"0 2m"'*) ;;
+    *) printf 'missing active last round: %s\n' "$actual" >&2; exit 1 ;;
+esac
+case $actual in
     *'✅'*|*'"color"'*) printf 'premature tick or color: %s\n' "$actual" >&2; exit 1 ;;
 esac
 
@@ -64,6 +72,6 @@ grep -q '^completed=7$' "$POMO_STATE_FILE"
 
 "$repo/pomo" reset
 state running 0
-check '7 2m'
+check '6 2m'
 
 printf 'countdown tests passed\n'
